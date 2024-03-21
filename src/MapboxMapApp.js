@@ -19,7 +19,8 @@ const markerStyle = {
   border: '1px solid #000000',
   borderRadius: '50%',
   fontSize: '10px',
-  color: '#ffffff'
+  color: '#ffffff',
+  cursor: 'pointer',
 };
 
 const circleThreshold = 10;
@@ -75,6 +76,18 @@ function MapboxMapApp() {
   useEffect(() => {
     if (!mapRef.current) return;
 
+    const bounds = new mapboxgl.LngLatBounds();
+
+    allMarkers.forEach(({ geoCoordinates }) => {
+      bounds.extend([geoCoordinates.longitude, geoCoordinates.latitude]);
+    });
+
+    mapRef.current.fitBounds(bounds, { padding: mapPadding });
+  }, [mapRef, allMarkers]);
+
+  useEffect(() => {
+    if (!mapRef.current) return;
+
     const map = mapRef.current.getMap();
 
     map.dragRotate.disable();
@@ -84,15 +97,7 @@ function MapboxMapApp() {
     map.on('moveend', onBoundsChanged);
     map.on('zoomend', onBoundsChanged);
     map.on('resize', onBoundsChanged);
-
-    const bounds = new mapboxgl.LngLatBounds();
-
-    allMarkers.forEach(({ geoCoordinates }) => {
-      bounds.extend([geoCoordinates.longitude, geoCoordinates.latitude]);
-    });
-
-    map.fitBounds(bounds, { padding: mapPadding });
-  }, [mapRef, allMarkers, onBoundsChanged]);
+  }, [mapRef, onBoundsChanged]);
 
   const onMarkerClick = (event) => {
     mapRef.current.flyTo({
