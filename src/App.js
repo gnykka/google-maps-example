@@ -74,6 +74,11 @@ function App() {
     setVisibleMarkers(filteredMarkers);
   }, [allMarkers]);
 
+  const onMarkerClick = useCallback((lat, lng) => {
+    mapRef.current.panTo({ lat, lng });
+    mapRef.current.setZoom(10);
+  }, []);
+
   return (
     <LoadScript googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY}>
       <GoogleMap
@@ -117,6 +122,7 @@ function App() {
                 ? {text: String(count), color: "#FFFFFF", fontSize: "10px"}
                 : null
               }
+              onClick={() => onMarkerClick(geoCoordinates.latitude, geoCoordinates.longitude)}
             />
           );
         })}
