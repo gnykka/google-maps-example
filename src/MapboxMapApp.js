@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import MapGL, { NavigationControl, Marker, Popup } from 'react-map-gl';
-import { debounce } from 'lodash';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import markers from './markers.json';
@@ -31,6 +30,17 @@ const circleThreshold = 10;
 const mapPadding = 50;
 const markerZoom = 9;
 
+const debounce = (callback, timeout = 100) => {
+  let timer;
+
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      callback.apply(this, args);
+    }, timeout);
+  };
+};
+
 function MapboxMapApp() {
   const [allMarkers, setAllMarkers] = useState([]);
   const [visibleMarkers, setVisibleMarkers] = useState([]);
@@ -48,7 +58,7 @@ function MapboxMapApp() {
       .sort((a, b) => b.count - a.count);
 
     setVisibleMarkers(filteredMarkers);
-  }, 100);
+  });
 
   useEffect(() => {
     const locationMap = new Map();
