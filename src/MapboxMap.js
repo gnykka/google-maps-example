@@ -4,6 +4,7 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import markers from './markers.json';
 
+/* Custom styles */
 const controlsStyle = {
   position: 'absolute',
   bottom: 10,
@@ -26,10 +27,12 @@ const popupStyle = {
   transition: 'opacity 200ms ease-in-out',
 };
 
+/* Consts */
 const circleThreshold = 10;
 const mapPadding = 50;
 const markerZoom = 9;
 
+/* Debounce func to update visible markers */
 const debounce = (callback, timeout = 100) => {
   let timer;
 
@@ -41,12 +44,17 @@ const debounce = (callback, timeout = 100) => {
   };
 };
 
-function MapboxMapApp() {
-  const [allMarkers, setAllMarkers] = useState([]);
-  const [visibleMarkers, setVisibleMarkers] = useState([]);
-  const [tooltipInfo, setTooltipInfo] = useState({ latitude: 0, longitude: 0, visible: false });
-  const mapRef = useRef(null);
+function MapboxMap() {
+  const [allMarkers, setAllMarkers] = useState([]); // all parsed markers from the file
+  const [visibleMarkers, setVisibleMarkers] = useState([]); // currently visible markers
+  const [tooltipInfo, setTooltipInfo] = useState({
+    latitude: 0, longitude: 0, visible: false,
+  }); // data for the tooltip on hovered marker
 
+  const mapRef = useRef(null); // map instance for Mapbox handlers and settings
+
+  // method to calculate visible markers
+  // hide markers that are outside of visible bounding box
   const onBoundsChanged = debounce(() => {
     const bounds = mapRef.current.getBounds();
 
@@ -54,17 +62,19 @@ function MapboxMapApp() {
       .filter(({ geoCoordinates }) => {
         const { latitude, longitude } = geoCoordinates;
         return bounds.contains(new mapboxgl.LngLat(longitude, latitude));
-      })
-      .sort((a, b) => b.count - a.count);
+      });
 
     setVisibleMarkers(filteredMarkers);
   });
 
+  // parse all markers from file and group them by unique locations
+  // each marker has geoCoordinates, city, state, countryOrRegion, count and array of id+ip pairs
   useEffect(() => {
     const locationMap = new Map();
 
     markers.forEach(({ id, ipAddress, location }) => {
       const { latitude, longitude } = location.geoCoordinates;
+
       if (latitude && longitude) {
         const locationKey = `${latitude}-${longitude}`;
 
@@ -85,11 +95,12 @@ function MapboxMapApp() {
 
     const uniqueLocationsArray = Array
       .from(locationMap, ([, value]) => value)
-      .sort((a, b) => a.count - b.count);
+      .sort((a, b) => b.count - a.count);
 
     setAllMarkers(uniqueLocationsArray);
   }, []);
 
+  // set initial bounds of the map to fit all markers
   useEffect(() => {
     if (!mapRef.current) return;
 
@@ -102,6 +113,7 @@ function MapboxMapApp() {
     mapRef.current.fitBounds(bounds, { padding: mapPadding });
   }, [mapRef, allMarkers]);
 
+  // setup map event handlers and settings
   useEffect(() => {
     if (!mapRef.current) return;
 
@@ -116,6 +128,7 @@ function MapboxMapApp() {
     map.on('resize', onBoundsChanged);
   }, [mapRef, onBoundsChanged]);
 
+  // handler to zoom to the marker's position
   const onMarkerClick = (event) => {
     mapRef.current.flyTo({
       center: event.target.getLngLat(),
@@ -124,6 +137,7 @@ function MapboxMapApp() {
     });
   };
 
+  // handler for the tooltip to appear
   const onMouseEnterMarker = (marker) => {
     setTooltipInfo({
       latitude: marker.geoCoordinates.latitude,
@@ -134,6 +148,7 @@ function MapboxMapApp() {
     });
   };
 
+  // handler for the tooltip to disappear
   const onMouseLeaveMarker = () => {
     setTooltipInfo({
       ...tooltipInfo,
@@ -141,6 +156,10 @@ function MapboxMapApp() {
     });
   };
 
+  // method to render each marker
+  // color is the same, size depends on the count of addresses
+  // if count is less than threshold, show the simple dot
+  // if count is equal or more, show circle with count inside
   const renderMarker = (marker) => {
     const { geoCoordinates, count } = marker;
     const isCrowded = count >= circleThreshold;
@@ -170,6 +189,7 @@ function MapboxMapApp() {
     );
   };
 
+  // render the map with navigation control, markers and popup
   return (
     <MapGL
       ref={mapRef}
@@ -199,4 +219,4 @@ function MapboxMapApp() {
   );
 }
 
-export default MapboxMapApp;
+export default MapboxMap;

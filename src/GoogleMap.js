@@ -10,7 +10,7 @@ const containerStyle = {
 
 const circleThreshold = 10;
 
-function GoogleMapApp() {
+function GoogleMap() {
   const [allMarkers, setAllMarkers] = useState([]);
   const [visibleMarkers, setVisibleMarkers] = useState([]);
   const mapRef = useRef(null);
@@ -125,4 +125,4 @@ function GoogleMapApp() {
   )
 }
 
-export default GoogleMapApp;
+export default GoogleMap;
