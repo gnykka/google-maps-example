@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import MapGL, { NavigationControl, Marker } from 'react-map-gl';
+import MapGL, { NavigationControl, Marker, Popup } from 'react-map-gl';
 import { debounce } from 'lodash';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -23,6 +23,10 @@ const markerStyle = {
   cursor: 'pointer',
 };
 
+const popupStyle = {
+  transition: 'opacity 200ms ease-in-out',
+};
+
 const circleThreshold = 10;
 const mapPadding = 50;
 const markerZoom = 9;
@@ -30,15 +34,18 @@ const markerZoom = 9;
 function MapboxMapApp() {
   const [allMarkers, setAllMarkers] = useState([]);
   const [visibleMarkers, setVisibleMarkers] = useState([]);
+  const [tooltipInfo, setTooltipInfo] = useState({ latitude: 0, longitude: 0, visible: false });
   const mapRef = useRef(null);
 
   const onBoundsChanged = debounce(() => {
     const bounds = mapRef.current.getBounds();
 
-    const filteredMarkers = allMarkers.filter(({ geoCoordinates }) => {
-      const { latitude, longitude } = geoCoordinates;
-      return bounds.contains(new mapboxgl.LngLat(longitude, latitude));
-    });
+    const filteredMarkers = allMarkers
+      .filter(({ geoCoordinates }) => {
+        const { latitude, longitude } = geoCoordinates;
+        return bounds.contains(new mapboxgl.LngLat(longitude, latitude));
+      })
+      .sort((a, b) => b.count - a.count);
 
     setVisibleMarkers(filteredMarkers);
   }, 100);
@@ -107,6 +114,23 @@ function MapboxMapApp() {
     });
   };
 
+  const onMouseEnterMarker = (marker) => {
+    setTooltipInfo({
+      latitude: marker.geoCoordinates.latitude,
+      longitude: marker.geoCoordinates.longitude,
+      address: `${marker.city}, ${marker.state}, ${marker.countryOrRegion}`,
+      count: marker.count,
+      visible: true,
+    });
+  };
+
+  const onMouseLeaveMarker = () => {
+    setTooltipInfo({
+      ...tooltipInfo,
+      visible: false,
+    });
+  };
+
   const renderMarker = (marker) => {
     const { geoCoordinates, count } = marker;
     const isCrowded = count >= circleThreshold;
@@ -125,7 +149,11 @@ function MapboxMapApp() {
         longitude={geoCoordinates.longitude}
         onClick={onMarkerClick}
       >
-        <div style={{ ...markerStyle, width: `${size}px`, height: `${size}px` }}>
+        <div
+          style={{ ...markerStyle, width: `${size}px`, height: `${size}px` }}
+          onMouseEnter={() => onMouseEnterMarker(marker)}
+          onMouseLeave={onMouseLeaveMarker}
+        >
           {isCrowded ? count : '' }
         </div>
       </Marker>
@@ -144,6 +172,19 @@ function MapboxMapApp() {
         <NavigationControl />
       </div>
       {visibleMarkers.map((marker) => renderMarker(marker))}
+      <Popup
+        latitude={tooltipInfo.latitude}
+        longitude={tooltipInfo.longitude}
+        closeButton={false}
+        closeOnClick={false}
+        style={{ ...popupStyle, opacity: tooltipInfo.visible ? 1 : 0 }}
+      >
+        <strong>{tooltipInfo.address}</strong>
+        <br />
+        ({tooltipInfo.latitude?.toFixed(4)}, {tooltipInfo.longitude?.toFixed(4)})
+        <br />
+        {tooltipInfo.count} address{tooltipInfo.count === 1 ? '' : 'es'}
+      </Popup>
     </MapGL>
   );
 }
