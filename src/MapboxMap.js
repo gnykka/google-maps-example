@@ -47,9 +47,7 @@ const debounce = (callback, timeout = 100) => {
 function MapboxMap() {
   const [allMarkers, setAllMarkers] = useState([]); // all parsed markers from the file
   const [visibleMarkers, setVisibleMarkers] = useState([]); // currently visible markers
-  const [tooltipInfo, setTooltipInfo] = useState({
-    latitude: 0, longitude: 0, visible: false,
-  }); // data for the tooltip on hovered marker
+  const [tooltipInfo, setTooltipInfo] = useState(); // data for the tooltip on hovered marker
 
   const mapRef = useRef(null); // map instance for Mapbox handlers and settings
 
@@ -69,6 +67,7 @@ function MapboxMap() {
 
   // parse all markers from file and group them by unique locations
   // each marker has geoCoordinates, city, state, countryOrRegion, count and array of id+ip pairs
+  // the markers are sorted by their count (or size) so that smaller will be on the foreground
   useEffect(() => {
     const locationMap = new Map();
 
@@ -202,19 +201,21 @@ function MapboxMap() {
         <NavigationControl />
       </div>
       {visibleMarkers.map((marker) => renderMarker(marker))}
-      <Popup
-        latitude={tooltipInfo.latitude}
-        longitude={tooltipInfo.longitude}
-        closeButton={false}
-        closeOnClick={false}
-        style={{ ...popupStyle, opacity: tooltipInfo.visible ? 1 : 0 }}
-      >
-        <strong>{tooltipInfo.address}</strong>
-        <br />
-        ({tooltipInfo.latitude?.toFixed(4)}, {tooltipInfo.longitude?.toFixed(4)})
-        <br />
-        {tooltipInfo.count} address{tooltipInfo.count === 1 ? '' : 'es'}
-      </Popup>
+      {tooltipInfo && (
+        <Popup
+          latitude={tooltipInfo.latitude}
+          longitude={tooltipInfo.longitude}
+          closeButton={false}
+          closeOnClick={false}
+          style={{ ...popupStyle, opacity: tooltipInfo.visible ? 1 : 0 }}
+        >
+          <strong>{tooltipInfo.address}</strong>
+          <br />
+          ({tooltipInfo.latitude?.toFixed(4)}, {tooltipInfo.longitude?.toFixed(4)})
+          <br />
+          {tooltipInfo.count} address{tooltipInfo.count === 1 ? '' : 'es'}
+        </Popup>
+      )}
     </MapGL>
   );
 }
